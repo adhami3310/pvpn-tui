@@ -7,12 +7,13 @@ from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass, replace
 from enum import Enum
+from typing import Protocol
 
 from .proton_api import (
-    AuthService,
     ExpiredCertificateError,
     LocalAgentClient,
     LogicalServer,
+    ServerList,
     WGCredentials,
 )
 from .state import AppState
@@ -27,6 +28,34 @@ from .wg import (
 )
 
 log = logging.getLogger(__name__)
+
+
+class AuthProvider(Protocol):
+    """Just the slice of ``AuthService`` that ``Connection`` actually uses.
+
+    Defined as a Protocol so unit tests can substitute a duck-typed fake
+    without inheriting from ``AuthService`` (which would drag in
+    ``ProtonSSO``, the keyring, etc.).
+    """
+
+    @property
+    def wg_credentials(self) -> WGCredentials | None: ...
+
+    @property
+    def server_list(self) -> ServerList | None: ...
+
+    async def ensure_fresh_cert(self) -> None: ...
+
+
+class _Unset:
+    """Sentinel type for ``Connection._set``: distinguishes "leave this
+    field alone" from "set it to None".
+    """
+
+    __slots__ = ()
+
+
+_UNSET = _Unset()
 
 
 class ConnectionState(Enum):
@@ -64,7 +93,7 @@ class Connection:
     OUR_ADDRESS = "10.2.0.2/32"
     IFACE = "wg0"
 
-    def __init__(self, auth: AuthService) -> None:
+    def __init__(self, auth: AuthProvider) -> None:
         self._auth = auth
         self._state = ConnectionState.DISCONNECTED
         self._active: ActiveConnection | None = None
@@ -182,14 +211,14 @@ class Connection:
         self,
         state: ConnectionState,
         *,
-        active: ActiveConnection | None | type = ...,
-        error: str | None | type = ...,
+        active: ActiveConnection | None | _Unset = _UNSET,
+        error: str | None | _Unset = _UNSET,
     ) -> None:
         self._state = state
-        if active is not ...:
-            self._active = active  # type: ignore[assignment]
-        if error is not ...:
-            self._last_error = error  # type: ignore[assignment]
+        if not isinstance(active, _Unset):
+            self._active = active
+        if not isinstance(error, _Unset):
+            self._last_error = error
         log.debug(
             "state -> %s active=%s error=%s",
             state.value,

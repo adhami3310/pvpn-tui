@@ -3,12 +3,16 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from typing import TYPE_CHECKING, cast
 
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Header, Static
+
+if TYPE_CHECKING:
+    from ..app import PvpnApp
 
 from ..connection import Connection, ConnectionState
 from ..proton_api import AuthService
@@ -286,7 +290,8 @@ class MainScreen(Screen[None]):
         asyncio.create_task(self._do_quick_connect(selector), name=f"qc:{selector}")
 
     async def _do_quick_connect(self, selector: str) -> None:
-        ok, msg = await self.app.connect_by_selector(selector)
+        app = cast("PvpnApp", self.app)
+        ok, msg = await app.connect_by_selector(selector)
         if not ok:
             sl_widget = self.query_one("#state-line", Static)
             sl_widget.set_classes("state-line error")

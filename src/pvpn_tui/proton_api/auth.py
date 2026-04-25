@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import cast
 
 from proton.sso import ProtonSSO
 
@@ -75,8 +76,9 @@ class AuthService:
         if not self._sso.sessions:
             log.info("restore: no persisted sessions")
             return None
-        session: VPNSession = self._sso.get_default_session(
-            override_class=VPNSession,
+        session = cast(
+            VPNSession,
+            self._sso.get_default_session(override_class=VPNSession),
         )
         if not session.logged_in:
             log.info("restore: persisted session not logged in")
@@ -88,9 +90,9 @@ class AuthService:
 
     async def login(self, username: str, password: str) -> LoginResult:
         log.info("login: %s", username)
-        session: VPNSession = self._sso.get_session(
-            username,
-            override_class=VPNSession,
+        session = cast(
+            VPNSession,
+            self._sso.get_session(username, override_class=VPNSession),
         )
         self._session = session
         result = await session.login(username, password)
@@ -177,7 +179,7 @@ class AuthService:
             wg_private_key=creds.wg_private_key,
             ed25519_sk_pem=creds.get_ed25519_sk_pem(),
             certificate_pem=creds.certificate_pem,
-            validity_remaining_s=float(creds.certificate_validity_remaining),
+            validity_remaining_s=float(creds.certificate_validity_remaining or 0),
         )
 
     async def ensure_fresh_cert(self) -> None:

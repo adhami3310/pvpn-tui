@@ -54,7 +54,7 @@ class LocalAgentClient:
         self._on_status = on_status
         self._on_error = on_error
         try:
-            self._listener = await AgentListener.connect(
+            listener = await AgentListener.connect(
                 domain,
                 private_key_pem,
                 certificate_pem,
@@ -63,8 +63,9 @@ class LocalAgentClient:
         except ExpiredCertificateError:
             log.warning("local agent: certificate expired")
             raise
+        self._listener = listener
         log.info("local agent: connected, starting listener loop")
-        self._listen_future = self._listener.listen(
+        self._listen_future = listener.listen(
             self._on_status_proxy,
             self._on_error_proxy,
         )

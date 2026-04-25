@@ -27,7 +27,31 @@ dev = [
     "ruff>=0.15.12",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.3.0",
+    "pyright>=1.1.409",
 ]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.14"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+# Proton's wheels are vendored without type stubs, so a few annotations
+# resolve as Unknown. Don't fail the run on that — flag them as info.
+reportMissingTypeStubs = "none"
+reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+reportPrivateImportUsage = "none"
+
+# Tests pass duck-typed fakes (FakeAuth, FakeServerList, etc.) instead of
+# real Proton instances. That's deliberate — exempt tests/ from the
+# nominal-type and Optional checks that would otherwise force casts on
+# every call site.
+[[tool.pyright.executionEnvironments]]
+root = "tests"
+reportArgumentType = "none"
+reportOptionalMemberAccess = "none"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

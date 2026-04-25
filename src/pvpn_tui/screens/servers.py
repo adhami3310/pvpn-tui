@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 
+from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -309,7 +310,7 @@ class ServerListScreen(Screen[None]):
         for idx, col_key in enumerate(table.columns):
             base = self._COL_LABELS[idx] if idx < len(self._COL_LABELS) else ""
             label = f"{base} ↑" if idx == active_idx else base
-            table.columns[col_key].label = label
+            table.columns[col_key].label = Text(label)
         # Re-render the header row.
         table.refresh()
 

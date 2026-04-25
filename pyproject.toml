@@ -1,0 +1,78 @@
+[project]
+name = "pvpn-tui"
+version = "0.1.0"
+description = "A sane Proton VPN TUI client for Linux"
+authors = [
+    { name = "Khaleel Al-Adhami", email = "khaleel@reflex.dev" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "textual>=8.2.4",
+    "pyroute2>=0.7.12",
+    "proton-core",
+    "proton-keyring-linux",
+    "proton-vpn-api-core",
+    "proton-vpn-local-agent",
+]
+
+[project.scripts]
+pvpn = "pvpn_tui.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 90
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",   # line length enforced by the formatter
+    "B008",   # function call defaults — fine for textual Bindings
+    "SIM108", # don't always force ternaries
+    # Textual idioms — class-level BINDINGS/CSS/etc. are intentional.
+    "RUF012",
+    # We intentionally fire-and-forget some asyncio tasks (auto-connect,
+    # agent reattach). They live in self._task / self._stats_task etc. and
+    # the lint rule doesn't see through the indirection.
+    "RUF006",
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+"vendor/build_local_agent_wheel.py" = ["UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.uv.sources]
+proton-core = { git = "https://github.com/ProtonVPN/python-proton-core", tag = "v0.7.0" }
+proton-keyring-linux = { git = "https://github.com/ProtonVPN/python-proton-keyring-linux", tag = "v0.2.1" }
+# python-proton-vpn-api-core has a private git submodule (scripts/devtools)
+# that breaks `uv` git clones. Vendored as a prebuilt wheel until Proton
+# drops the submodule or uv learns to skip it.
+proton-vpn-api-core = { path = "vendor/wheels/proton_vpn_api_core-5.0.1-py3-none-any.whl" }
+# The PyPI release of proton-vpn-local-agent is a stub. The real Rust
+# extension ships in the Arch python-proton-vpn-local-agent package.
+# vendor/build_local_agent_wheel.py wraps that .so as a proper wheel.
+proton-vpn-local-agent = { path = "vendor/wheels/proton_vpn_local_agent-0.1.1-cp314-abi3-linux_x86_64.whl" }

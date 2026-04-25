@@ -4,8 +4,8 @@ import logging
 from textual.app import App
 from textual.binding import Binding
 
-from .auth import AuthService
 from .connection import Connection
+from .proton_api import AuthService
 from .resolver import resolve as resolve_server
 from .screens.login import LoginScreen
 from .screens.main import MainScreen

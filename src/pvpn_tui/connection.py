@@ -8,11 +8,13 @@ from contextlib import suppress
 from dataclasses import dataclass, replace
 from enum import Enum
 
-from proton.vpn.local_agent import ExpiredCertificateError
-from proton.vpn.session.servers import LogicalServer
-
-from .auth import AuthService
-from .local_agent import LocalAgentClient
+from .proton_api import (
+    AuthService,
+    ExpiredCertificateError,
+    LocalAgentClient,
+    LogicalServer,
+    WGCredentials,
+)
 from .state import AppState
 from .wg import (
     WGConfig,
@@ -150,11 +152,9 @@ class Connection:
         )
         # Re-attach the local agent (best effort — port may already be
         # assigned and will reappear in the first status callback).
-        session = self._auth.session
-        if session is not None and session.vpn_account is not None:
-            creds = session.vpn_account.vpn_credentials.pubkey_credentials
+        if self._auth.wg_credentials is not None:
             asyncio.create_task(
-                self._start_agent(physical.domain or "", creds),
+                self._start_agent(physical.domain or ""),
                 name="agent-reattach",
             )
         return True
@@ -243,10 +243,6 @@ class Connection:
     # ---- internal coroutines ---------------------------------------------
 
     async def _connect(self, server: LogicalServer) -> ActiveConnection:
-        session = self._auth.session
-        if session is None or session.vpn_account is None:
-            raise RuntimeError("not logged in or session not loaded")
-
         physicals = [p for p in (server.physical_servers or []) if p.enabled]
         if not physicals:
             raise RuntimeError(f"no physical servers available for {server.name}")
@@ -265,7 +261,9 @@ class Connection:
             )
             raise
 
-        creds = session.vpn_account.vpn_credentials.pubkey_credentials
+        creds = self._auth.wg_credentials
+        if creds is None:
+            raise RuntimeError("no WG credentials (session not loaded)")
         cfg = WGConfig(
             private_key=creds.wg_private_key,
             address=self.OUR_ADDRESS,
@@ -318,7 +316,7 @@ class Connection:
 
         # Bring up the local agent. Failures here don't kill the tunnel —
         # apps bound to wg0 still work without port forwarding.
-        await self._start_agent(physical.domain or "", creds)
+        await self._start_agent(physical.domain or "")
         # Start the sysfs poller. No privileges needed; reads
         # /sys/class/net/wg0/statistics/{rx,tx}_bytes once a second.
         self._stats_task = asyncio.create_task(
@@ -354,32 +352,18 @@ class Connection:
         else:
             self._set(ConnectionState.DISCONNECTED, active=None, error=None)
 
-    async def _start_agent(self, domain: str, creds: object) -> None:
+    async def _start_agent(self, domain: str) -> None:
         if not domain:
             log.warning("no domain on physical server; skipping local agent")
             return
-        # If the cert was refreshed mid-connect, pull the latest creds
-        # from the session rather than using the snapshot passed in.
-        session = self._auth.session
-        if session is not None and session.vpn_account is not None:
-            creds = session.vpn_account.vpn_credentials.pubkey_credentials
-        try:
-            key_pem = creds.get_ed25519_sk_pem()  # type: ignore[attr-defined]
-            cert_pem = creds.certificate_pem  # type: ignore[attr-defined]
-        except Exception:
-            log.exception("could not extract local agent credentials")
+        creds = self._auth.wg_credentials
+        if creds is None:
+            log.warning("no WG credentials available; skipping local agent")
             return
 
         agent = LocalAgentClient()
         try:
-            await agent.connect(
-                domain=domain,
-                private_key_pem=key_pem,
-                certificate_pem=cert_pem,
-                on_status=self._on_agent_status,
-                on_error=self._on_agent_error,
-            )
-            await agent.request_port_forwarding()
+            await self._agent_connect(agent, domain, creds)
         except ExpiredCertificateError:
             log.warning("local agent: cert expired, refreshing and retrying")
             with suppress(Exception):
@@ -390,22 +374,13 @@ class Connection:
                 log.exception("cert refresh after agent rejection failed")
                 self._update_agent_state(error="certificate expired")
                 return
-            # Retry once with the fresh cert.
-            session = self._auth.session
-            if session is None or session.vpn_account is None:
+            fresh = self._auth.wg_credentials
+            if fresh is None:
                 self._update_agent_state(error="lost session during refresh")
                 return
-            fresh_creds = session.vpn_account.vpn_credentials.pubkey_credentials
             agent = LocalAgentClient()
             try:
-                await agent.connect(
-                    domain=domain,
-                    private_key_pem=fresh_creds.get_ed25519_sk_pem(),
-                    certificate_pem=fresh_creds.certificate_pem,
-                    on_status=self._on_agent_status,
-                    on_error=self._on_agent_error,
-                )
-                await agent.request_port_forwarding()
+                await self._agent_connect(agent, domain, fresh)
             except Exception as exc:
                 log.exception("local agent retry after cert refresh failed")
                 with suppress(Exception):
@@ -419,6 +394,21 @@ class Connection:
             self._update_agent_state(error=str(exc))
             return
         self._agent = agent
+
+    async def _agent_connect(
+        self,
+        agent: LocalAgentClient,
+        domain: str,
+        creds: WGCredentials,
+    ) -> None:
+        await agent.connect(
+            domain=domain,
+            private_key_pem=creds.ed25519_sk_pem,
+            certificate_pem=creds.certificate_pem,
+            on_status=self._on_agent_status,
+            on_error=self._on_agent_error,
+        )
+        await agent.request_port_forwarding()
 
     def _on_agent_status(self, status: object) -> None:
         if self._active is None:

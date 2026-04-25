@@ -4,7 +4,6 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 
-from proton.vpn.session.servers import LogicalServer, ServerFeatureEnum
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -12,8 +11,8 @@ from textual.screen import Screen
 from textual.timer import Timer
 from textual.widgets import DataTable, Header, Input, Label
 
-from ..auth import AuthService
 from ..connection import Connection
+from ..proton_api import AuthService, LogicalServer, ServerFeature
 from ..widgets import HintBar
 
 log = logging.getLogger(__name__)
@@ -39,17 +38,17 @@ class ServerRow:
     name: str
     load: int
     score: float
-    features: tuple[ServerFeatureEnum, ...]
+    features: tuple[ServerFeature, ...]
 
     @property
     def features_str(self) -> str:
         if not self.features:
             return ""
         symbols = {
-            ServerFeatureEnum.SECURE_CORE: "SC",
-            ServerFeatureEnum.TOR: "Tor",
-            ServerFeatureEnum.P2P: "P2P",
-            ServerFeatureEnum.STREAMING: "Stream",
+            ServerFeature.SECURE_CORE: "SC",
+            ServerFeature.TOR: "Tor",
+            ServerFeature.P2P: "P2P",
+            ServerFeature.STREAMING: "Stream",
         }
         return " ".join(symbols.get(f, "") for f in self.features if f in symbols).strip()
 

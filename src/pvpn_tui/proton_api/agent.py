@@ -13,17 +13,17 @@ import logging
 from collections.abc import Callable
 from contextlib import suppress
 
-from proton.vpn.local_agent import (
+from .types import (
     AgentFeatures,
+    AgentListener,
+    AgentStatus,
     ExpiredCertificateError,
-    Listener,
-    Status,
 )
 
 log = logging.getLogger(__name__)
 
 
-StatusHandler = Callable[[Status], None]
+StatusHandler = Callable[[AgentStatus], None]
 ErrorHandler = Callable[[Exception], None]
 
 
@@ -31,7 +31,7 @@ class LocalAgentClient:
     """Manages the lifetime of a single local-agent connection."""
 
     def __init__(self) -> None:
-        self._listener: Listener | None = None
+        self._listener: AgentListener | None = None
         self._listen_future: asyncio.Future | None = None
         self._on_status: StatusHandler | None = None
         self._on_error: ErrorHandler | None = None
@@ -54,7 +54,7 @@ class LocalAgentClient:
         self._on_status = on_status
         self._on_error = on_error
         try:
-            self._listener = await Listener.connect(
+            self._listener = await AgentListener.connect(
                 domain,
                 private_key_pem,
                 certificate_pem,
@@ -88,7 +88,7 @@ class LocalAgentClient:
         self._on_error = None
         log.info("local agent: stopped")
 
-    def _on_status_proxy(self, status: Status) -> None:
+    def _on_status_proxy(self, status: AgentStatus) -> None:
         log.debug(
             "agent status: state=%s reason=%s features=%s",
             getattr(status, "state", None),

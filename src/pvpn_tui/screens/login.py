@@ -6,7 +6,7 @@ from textual.containers import Center, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Header, Input, Label, Static
 
-from ..auth import AuthService
+from ..proton_api import AuthService
 from ..widgets import HintBar
 
 

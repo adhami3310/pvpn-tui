@@ -1,11 +1,18 @@
+"""Auth + session lifecycle for Proton VPN.
+
+This is the only place in the codebase that reaches into ``proton.sso``
+and ``proton.vpn.session`` directly. Everything else talks to
+``AuthService`` and the small dataclasses defined here.
+"""
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
 
 from proton.sso import ProtonSSO
-from proton.vpn.session import ServerList, VPNSession
-from proton.vpn.session.dataclasses.login_result import LoginResult
+
+from .types import LoginResult, ServerList, VPNSession
 
 log = logging.getLogger(__name__)
 
@@ -13,6 +20,20 @@ log = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class LoggedInUser:
     account_name: str
+
+
+@dataclass(frozen=True)
+class WGCredentials:
+    """Everything Connection needs to bring up wg + auth the local agent.
+
+    Plain strings + a float, no Proton types — so the connection layer
+    never has to navigate ``vpn_account.vpn_credentials.pubkey_credentials``.
+    """
+
+    wg_private_key: str  # base64
+    ed25519_sk_pem: str  # PEM-encoded ED25519 private key
+    certificate_pem: str  # PEM-encoded X.509 certificate
+    validity_remaining_s: float  # seconds until cert expiry
 
 
 class AuthService:
@@ -26,9 +47,12 @@ class AuthService:
     # prefix is server-side allowlisted; "linux-vpn-tui" isn't registered,
     # so the server rejects it as outdated. We pose as the GTK app
     # (the actively-maintained Linux client) until/unless Proton adds us.
-    # See proton.vpn.core.session_holder._get_app_version_header_value.
     APP_VERSION = "linux-vpn-gtk@4.15.2"
     USER_AGENT = "pvpn-tui/0.1.0"
+
+    # WG cert ships with ~7 days of validity. Refresh well before it
+    # actually expires so we don't fail mid-connect.
+    CERT_REFRESH_THRESHOLD_S = 24 * 3600  # 1 day
 
     def __init__(self) -> None:
         self._sso = ProtonSSO(
@@ -37,9 +61,7 @@ class AuthService:
         )
         self._session: VPNSession | None = None
 
-    @property
-    def session(self) -> VPNSession | None:
-        return self._session
+    # ----- session lifecycle ----------------------------------------------
 
     @property
     def known_accounts(self) -> list[str]:
@@ -105,7 +127,9 @@ class AuthService:
             return None
         return LoggedInUser(account_name=self._session.AccountName or "")
 
-    async def ensure_session_data(self) -> ServerList:
+    # ----- session data --------------------------------------------------
+
+    async def ensure_session_data(self) -> ServerList | None:
         """Make sure the session has VPN account, server list, etc.
 
         Issues network calls only when the local cache is missing data.
@@ -128,9 +152,33 @@ class AuthService:
         log.info("refresh_server_loads: %d logicals", len(sl.logicals))
         return sl
 
-    # WG cert ships with ~7 days of validity. Refresh well before it
-    # actually expires so we don't fail mid-connect.
-    CERT_REFRESH_THRESHOLD_S = 24 * 3600  # 1 day
+    @property
+    def server_list(self) -> ServerList | None:
+        return self._session.server_list if self._session else None
+
+    @property
+    def user_tier(self) -> int | None:
+        sl = self.server_list
+        return sl.user_tier if sl else None
+
+    # ----- cert / WG credentials -----------------------------------------
+
+    @property
+    def wg_credentials(self) -> WGCredentials | None:
+        """Snapshot the credentials needed to bring up wg + the agent.
+
+        Returns ``None`` when the session isn't loaded. Otherwise a
+        plain dataclass with no Proton types in it.
+        """
+        if self._session is None or self._session.vpn_account is None:
+            return None
+        creds = self._session.vpn_account.vpn_credentials.pubkey_credentials
+        return WGCredentials(
+            wg_private_key=creds.wg_private_key,
+            ed25519_sk_pem=creds.get_ed25519_sk_pem(),
+            certificate_pem=creds.certificate_pem,
+            validity_remaining_s=float(creds.certificate_validity_remaining),
+        )
 
     async def ensure_fresh_cert(self) -> None:
         """If our WG cert is close to expiry, fetch a new one.
@@ -139,14 +187,8 @@ class AuthService:
         """
         if self._session is None:
             raise RuntimeError("Not logged in")
-        creds = (
-            self._session.vpn_account.vpn_credentials.pubkey_credentials
-            if self._session.vpn_account is not None
-            else None
-        )
-        remaining = (
-            float(creds.certificate_validity_remaining) if creds is not None else 0.0
-        )
+        creds = self.wg_credentials
+        remaining = creds.validity_remaining_s if creds is not None else 0.0
         if remaining > self.CERT_REFRESH_THRESHOLD_S:
             log.debug("cert OK (%.0fs remaining)", remaining)
             return
@@ -156,20 +198,6 @@ class AuthService:
             self.CERT_REFRESH_THRESHOLD_S,
         )
         await self._session.fetch_session_data()
-        new_remaining = (
-            float(
-                self._session.vpn_account.vpn_credentials.pubkey_credentials.certificate_validity_remaining
-            )
-            if self._session.vpn_account is not None
-            else 0.0
-        )
+        new_creds = self.wg_credentials
+        new_remaining = new_creds.validity_remaining_s if new_creds else 0.0
         log.info("cert refresh complete: %.0fs remaining", new_remaining)
-
-    @property
-    def server_list(self) -> ServerList | None:
-        return self._session.server_list if self._session else None
-
-    @property
-    def user_tier(self) -> int | None:
-        sl = self.server_list
-        return sl.user_tier if sl else None

@@ -12,8 +12,7 @@ Used by the ``--connect`` CLI flag. Pure: no side effects, no I/O.
 
 from __future__ import annotations
 
-from proton.vpn.session import ServerList
-from proton.vpn.session.servers import LogicalServer
+from .proton_api import LogicalServer, ServerList
 
 
 def resolve(

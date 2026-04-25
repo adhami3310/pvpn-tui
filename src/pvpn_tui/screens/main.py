@@ -10,8 +10,8 @@ from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Header, Static
 
-from ..auth import AuthService
 from ..connection import Connection, ConnectionState
+from ..proton_api import AuthService
 from ..state import AppState
 from ..widgets import HintBar
 from .servers import ServerListScreen

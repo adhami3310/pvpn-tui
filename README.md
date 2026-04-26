@@ -66,6 +66,23 @@ That requires:
 
 Cold cargo build is ~1–2 min; subsequent runs reuse cargo's `target/` cache.
 
+### Install on `$PATH`
+
+To get a `pvpn` command without `uv run`:
+
+```sh
+uv tool install --editable .
+```
+
+That builds an isolated venv under `~/.local/share/uv/tools/pvpn-tui/` (carrying
+the maturin Rust extension + the vendored api-core) and drops a shim at
+`~/.local/bin/pvpn`. With `--editable`, source edits take effect on the next
+invocation; drop the flag to snapshot the current code instead. Make sure
+`~/.local/bin` is on `$PATH` (`fish_add_path ~/.local/bin` for fish).
+
+Update after `git pull` with `uv tool upgrade pvpn-tui`. Remove with
+`uv tool uninstall pvpn-tui`.
+
 ### Runtime requirements
 
 - Python 3.14 (matches Proton's wheels).

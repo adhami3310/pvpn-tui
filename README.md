@@ -40,7 +40,7 @@ What it deliberately doesn't do:
 ## Install
 
 ```sh
-git clone --recurse-submodules https://github.com/<...>/pvpn-tui
+git clone --recurse-submodules https://github.com/adhami3310/pvpn-tui
 cd pvpn-tui
 uv sync
 uv run pvpn
@@ -147,4 +147,4 @@ uv run pre-commit install
 
 ## License
 
-Personal project for now. License TBD.
+MIT. See [LICENSE](LICENSE).

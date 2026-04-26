@@ -2,6 +2,8 @@
 name = "pvpn-tui"
 version = "0.1.0"
 description = "A sane Proton VPN TUI client for Linux"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Khaleel Al-Adhami", email = "khaleel@reflex.dev" }
 ]

@@ -96,6 +96,7 @@ Logs default to `$XDG_STATE_HOME/pvpn-tui/pvpn.log`.
 | `f` | connect to fastest |
 | `r` | reconnect to last |
 | `s` | open server browser |
+| `p` | push forwarded port to qBittorrent (requires config) |
 | `d` | disconnect (explicit teardown) |
 | `L` | logout |
 | `q` / `^c` | quit (tunnel stays up) |
@@ -115,7 +116,27 @@ Logs default to `$XDG_STATE_HOME/pvpn-tui/pvpn.log`.
 Apps that should use the tunnel must bind to `wg0` themselves (we don't install
 a default route). qBittorrent: Settings → Advanced → Network interface = `wg0`.
 The MainScreen panel shows the **forwarded port** assigned by Proton's local
-agent — paste it into qBittorrent's Connection settings.
+agent — paste it into qBittorrent's Connection settings, or press `p` to push
+it via qBittorrent's Web API (see *Config* below).
+
+### Config
+
+Optional. The TUI reads `$XDG_CONFIG_HOME/pvpn-tui/config.toml`
+(`~/.config/pvpn-tui/config.toml` by default). Currently the only section is
+`[qbittorrent]`, which enables the `p` keybinding to set qBittorrent's
+listen port to the agent-assigned forwarded port.
+
+The first time you press `p` without a config, pvpn writes a starter file:
+
+```toml
+[qbittorrent]
+url = "http://localhost:8080"
+username = ""
+password = ""
+```
+
+Fill in `username` and `password` (qBittorrent → Tools → Preferences → Web UI)
+and press `p` again — pvpn re-reads the config on each press, so no restart.
 
 ## Architecture
 

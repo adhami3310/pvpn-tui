@@ -132,6 +132,7 @@ class MainScreen(Screen[None]):
         Binding("f", "quick_connect('fastest')", "fastest"),
         Binding("r", "quick_connect('last')", "reconnect"),
         Binding("s", "servers", "servers"),
+        Binding("p", "push_port", "qBT port"),
         Binding("d", "disconnect", "disconnect"),
         Binding("L", "logout", "logout"),
         Binding("q", "app.quit", "quit"),
@@ -304,6 +305,14 @@ class MainScreen(Screen[None]):
             sl_widget = self.query_one("#state-line", Static)
             sl_widget.set_classes("state-line error")
             sl_widget.update(f"x {exc}")
+
+    def action_push_port(self) -> None:
+        asyncio.create_task(self._do_push_port(), name="push-port-qbt")
+
+    async def _do_push_port(self) -> None:
+        app = cast("PvpnApp", self.app)
+        ok, msg = await app.push_port_to_qbittorrent()
+        self.app.notify(msg, severity="information" if ok else "warning")
 
     def action_logout(self) -> None:
         # Long-running logout owned by the app, not this screen.

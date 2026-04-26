@@ -11,7 +11,6 @@ Maintained by hand: bump when upstream adds methods we care about.
 from collections.abc import Awaitable, Callable
 from typing import Any, ClassVar, final
 
-
 # ---------------------------------------------------------------- exceptions
 
 class LocalAgentError(Exception):
@@ -29,44 +28,39 @@ class SyntaxAPIError(APIError):
 class ExpiredCertificateError(LocalAgentError):
     """Raised when the passed certificate is expired."""
 
-
 # ---------------------------------------------------------------- enum-likes
-
 
 @final
 class State:
-    CONNECTED: ClassVar["State"]
-    HARD_JAILED: ClassVar["State"]
-
+    CONNECTED: ClassVar[State]
+    HARD_JAILED: ClassVar[State]
 
 @final
 class ReasonCode:
-    BAD_CERT_SIGNATURE: ClassVar["ReasonCode"]
-    CERTIFICATE_EXPIRED: ClassVar["ReasonCode"]
-    CERTIFICATE_REVOKED: ClassVar["ReasonCode"]
-    CERT_NOT_PROVIDED: ClassVar["ReasonCode"]
-    GUEST_SESSION: ClassVar["ReasonCode"]
-    KEY_USED_MULTIPLE_TIMES: ClassVar["ReasonCode"]
-    MAX_SESSIONS_BASIC: ClassVar["ReasonCode"]
-    MAX_SESSIONS_FREE: ClassVar["ReasonCode"]
-    MAX_SESSIONS_PLUS: ClassVar["ReasonCode"]
-    MAX_SESSIONS_PRO: ClassVar["ReasonCode"]
-    MAX_SESSIONS_UNKNOWN: ClassVar["ReasonCode"]
-    MAX_SESSIONS_VISIONARY: ClassVar["ReasonCode"]
-    POLICY_VIOLATION_DELINQUENT: ClassVar["ReasonCode"]
-    POLICY_VIOLATION_LOW_PLAN: ClassVar["ReasonCode"]
-    REASON_CODE_2FA_EXPIRED: ClassVar["ReasonCode"]
-    REASON_CODE_2FA_SITUATION_CHANGED: ClassVar["ReasonCode"]
-    REASON_CODE_2FA_UNSPECIFIED: ClassVar["ReasonCode"]
-    RESTRICTED_SERVER: ClassVar["ReasonCode"]
-    SERVER_ERROR: ClassVar["ReasonCode"]
-    UNKNOWN: ClassVar["ReasonCode"]
-    USER_BAD_BEHAVIOR: ClassVar["ReasonCode"]
-    USER_TORRENT_NOT_ALLOWED: ClassVar["ReasonCode"]
-
+    BAD_CERT_SIGNATURE: ClassVar[ReasonCode]
+    CERTIFICATE_EXPIRED: ClassVar[ReasonCode]
+    CERTIFICATE_REVOKED: ClassVar[ReasonCode]
+    CERT_NOT_PROVIDED: ClassVar[ReasonCode]
+    GUEST_SESSION: ClassVar[ReasonCode]
+    KEY_USED_MULTIPLE_TIMES: ClassVar[ReasonCode]
+    MAX_SESSIONS_BASIC: ClassVar[ReasonCode]
+    MAX_SESSIONS_FREE: ClassVar[ReasonCode]
+    MAX_SESSIONS_PLUS: ClassVar[ReasonCode]
+    MAX_SESSIONS_PRO: ClassVar[ReasonCode]
+    MAX_SESSIONS_UNKNOWN: ClassVar[ReasonCode]
+    MAX_SESSIONS_VISIONARY: ClassVar[ReasonCode]
+    POLICY_VIOLATION_DELINQUENT: ClassVar[ReasonCode]
+    POLICY_VIOLATION_LOW_PLAN: ClassVar[ReasonCode]
+    REASON_CODE_2FA_EXPIRED: ClassVar[ReasonCode]
+    REASON_CODE_2FA_SITUATION_CHANGED: ClassVar[ReasonCode]
+    REASON_CODE_2FA_UNSPECIFIED: ClassVar[ReasonCode]
+    RESTRICTED_SERVER: ClassVar[ReasonCode]
+    SERVER_ERROR: ClassVar[ReasonCode]
+    UNKNOWN: ClassVar[ReasonCode]
+    USER_BAD_BEHAVIOR: ClassVar[ReasonCode]
+    USER_TORRENT_NOT_ALLOWED: ClassVar[ReasonCode]
 
 # ---------------------------------------------------------------- data types
-
 
 @final
 class AgentFeatures:
@@ -90,13 +84,11 @@ class AgentFeatures:
         split_tcp: bool | None = ...,
     ) -> None: ...
 
-
 @final
 class Reason:
     code: ReasonCode
     description: str
     is_final: bool
-
 
 @final
 class ConnectionDetails:
@@ -105,7 +97,6 @@ class ConnectionDetails:
     server_ipv4: str | None
     server_ipv6: str | None
 
-
 @final
 class Status:
     state: State
@@ -113,13 +104,10 @@ class Status:
     features: AgentFeatures | None
     connection_details: ConnectionDetails | None
 
-
 # ---------------------------------------------------------------- connection
-
 
 _StatusCallback = Callable[[Status], Any]
 _ErrorCallback = Callable[[Exception], Any]
-
 
 @final
 class AgentConnection:
@@ -127,7 +115,6 @@ class AgentConnection:
     def read(self) -> Awaitable[Status]: ...
     def request_features(self, features: AgentFeatures) -> Awaitable[None]: ...
     def request_status(self) -> Awaitable[None]: ...
-
 
 @final
 class AgentConnector:
@@ -139,10 +126,8 @@ class AgentConnector:
         cert: str,
         timeout_in_seconds: int = ...,
     ) -> Awaitable[AgentConnection]: ...
-
     @classmethod
     def playback(cls, *args: Any, **kwargs: Any) -> Any: ...
-
 
 @final
 class Listener:
@@ -153,8 +138,7 @@ class Listener:
         key: str,
         cert: str,
         timeout_in_seconds: int = ...,
-    ) -> Awaitable["Listener"]: ...
-
+    ) -> Awaitable[Listener]: ...
     @classmethod
     def playback(cls, *args: Any, **kwargs: Any) -> Any: ...
 
@@ -165,11 +149,8 @@ class Listener:
         status_callback: _StatusCallback,
         error_callback: _ErrorCallback,
     ) -> Any: ...
-
     def request_features(self, features: AgentFeatures) -> Awaitable[None]: ...
 
-
 # ---------------------------------------------------------------- module-level
-
 
 def init_logger(*args: Any, **kwargs: Any) -> None: ...

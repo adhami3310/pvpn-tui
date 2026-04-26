@@ -4,6 +4,13 @@ import logging
 from textual.app import App
 from textual.binding import Binding
 
+from . import qbittorrent
+from .config import (
+    Config,
+    default_path as default_config_path,
+    load as load_config,
+    write_template as write_config_template,
+)
 from .connection import Connection
 from .proton_api import AuthService
 from .resolver import resolve as resolve_server
@@ -54,10 +61,12 @@ class PvpnApp(App[None]):
         self,
         connect_selector: str | None = None,
         theme: str | None = None,
+        config: Config | None = None,
     ) -> None:
         super().__init__()
         self.auth = AuthService()
         self.connection = Connection(self.auth)
+        self.config = config if config is not None else load_config()
         self._connect_selector = connect_selector
         self._initial_theme = theme or self.DEFAULT_THEME
 
@@ -122,6 +131,36 @@ class PvpnApp(App[None]):
         except RuntimeError as exc:
             return False, str(exc)
         return True, server.name or server.id
+
+    async def push_port_to_qbittorrent(self) -> tuple[bool, str]:
+        """Send the current forwarded port to qBittorrent's Web API.
+
+        Returns ``(ok, message)`` for the screen to surface as a notify.
+        """
+        active = self.connection.active
+        port = active.forwarded_port if active else None
+        if port is None:
+            return False, "no forwarded port yet"
+        # Reload so an edit-then-press cycle works without restarting.
+        self.config = load_config()
+        cfg = self.config.qbittorrent
+        if cfg is None:
+            path = default_config_path()
+            if write_config_template(path):
+                return (
+                    False,
+                    f"wrote a [qbittorrent] template to {path} — "
+                    "fill in url/username/password and press p again",
+                )
+            return (
+                False,
+                f"qBittorrent not configured — fill in [qbittorrent] in {path}",
+            )
+        try:
+            await qbittorrent.push_listen_port(cfg, port)
+        except qbittorrent.QBittorrentError as exc:
+            return False, str(exc)
+        return True, f"qBittorrent listen port set to {port}"
 
     async def on_unmount(self) -> None:
         log.debug("app on_unmount: connection.shutdown()")

@@ -40,14 +40,17 @@ What it deliberately doesn't do:
 ## Install
 
 ```sh
-git clone --recurse-submodules https://github.com/adhami3310/pvpn-tui
+git clone https://github.com/adhami3310/pvpn-tui
 cd pvpn-tui
+git submodule update --init   # local-agent-rs only; do NOT pass --recursive
 uv sync
 uv run pvpn
 ```
 
-If you forgot `--recurse-submodules`, run `git submodule update --init --recursive`
-once before `uv sync`.
+`local-agent-rs` itself has nested submodules (`scripts/devtools`,
+`ci-libraries-rust`) that point at Proton's private GitLab and aren't published
+on GitHub. They're not needed to build — pass `--init` only, never
+`--recursive`.
 
 `uv sync` builds `proton-vpn-local-agent` from the
 [`local-agent-rs`](https://github.com/ProtonVPN/local-agent-rs) Rust source

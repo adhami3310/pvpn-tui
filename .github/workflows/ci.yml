@@ -10,10 +10,14 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          # Top-level only. local-agent-rs has private nested submodules
+          # (`../integration/devtools.git`, `../integration/ci-libraries-rust.git`)
+          # that aren't published on GitHub; the binding crate doesn't
+          # need them.
+          submodules: true
 
       - name: Install Rust toolchain
         # The proton-vpn-local-agent dep is built from

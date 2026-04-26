@@ -715,7 +715,7 @@ dependencies = [
 [[package]]
 name = "proton-vpn-api-core"
 version = "5.0.1"
-source = { path = "vendor/wheels/proton_vpn_api_core-5.0.1-py3-none-any.whl" }
+source = { directory = "vendor/python-proton-vpn-api-core" }
 dependencies = [
     { name = "cryptography" },
     { name = "distro" },
@@ -728,9 +728,6 @@ dependencies = [
     { name = "pygobject" },
     { name = "pynacl" },
     { name = "sentry-sdk" },
-]
-wheels = [
-    { filename = "proton_vpn_api_core-5.0.1-py3-none-any.whl", hash = "sha256:d227840961f202fd7c9598d3fa95f7e82170b976c354b6b280db8104fba710ce" },
 ]
 
 [package.metadata]
@@ -786,7 +783,7 @@ dev = [
 requires-dist = [
     { name = "proton-core", git = "https://github.com/ProtonVPN/python-proton-core?tag=v0.7.0" },
     { name = "proton-keyring-linux", git = "https://github.com/ProtonVPN/python-proton-keyring-linux?tag=v0.2.1" },
-    { name = "proton-vpn-api-core", path = "vendor/wheels/proton_vpn_api_core-5.0.1-py3-none-any.whl" },
+    { name = "proton-vpn-api-core", directory = "vendor/python-proton-vpn-api-core" },
     { name = "proton-vpn-local-agent", directory = "vendor/local_agent_pkg" },
     { name = "pyroute2", specifier = ">=0.7.12" },
     { name = "textual", specifier = ">=8.2.4" },

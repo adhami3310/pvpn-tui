@@ -94,9 +94,6 @@ ignore = [
 [tool.ruff.lint.isort]
 combine-as-imports = true
 
-[tool.ruff.lint.per-file-ignores]
-"vendor/build_local_agent_wheel.py" = ["UP"]
-
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
@@ -104,10 +101,12 @@ indent-style = "space"
 [tool.uv.sources]
 proton-core = { git = "https://github.com/ProtonVPN/python-proton-core", tag = "v0.7.0" }
 proton-keyring-linux = { git = "https://github.com/ProtonVPN/python-proton-keyring-linux", tag = "v0.2.1" }
-# python-proton-vpn-api-core has a private git submodule (scripts/devtools)
-# that breaks `uv` git clones. Vendored as a prebuilt wheel until Proton
-# drops the submodule or uv learns to skip it.
-proton-vpn-api-core = { path = "vendor/wheels/proton_vpn_api_core-5.0.1-py3-none-any.whl" }
+# python-proton-vpn-api-core has a private nested submodule
+# (scripts/devtools → Proton's GitLab) that uv would try to fetch if we
+# pointed at it as a git source. Vendored as a top-level git submodule
+# instead — `git submodule update --init` (NOT --recursive) skips the
+# private one, and uv builds from the local path without touching git.
+proton-vpn-api-core = { path = "vendor/python-proton-vpn-api-core" }
 # The PyPI release of proton-vpn-local-agent is a 1.4 KB stub. We build
 # the real Rust extension from the local-agent-rs submodule via maturin;
 # vendor/local_agent_pkg/ is the wrapper pyproject that points at it.

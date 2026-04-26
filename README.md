@@ -42,19 +42,21 @@ What it deliberately doesn't do:
 ```sh
 git clone https://github.com/adhami3310/pvpn-tui
 cd pvpn-tui
-git submodule update --init   # local-agent-rs only; do NOT pass --recursive
+git submodule update --init   # do NOT pass --recursive (see below)
 uv sync
 uv run pvpn
 ```
 
-`local-agent-rs` itself has nested submodules (`scripts/devtools`,
-`ci-libraries-rust`) that point at Proton's private GitLab and aren't published
-on GitHub. They're not needed to build — pass `--init` only, never
-`--recursive`.
+Both vendored submodules — [`local-agent-rs`](https://github.com/ProtonVPN/local-agent-rs)
+and [`python-proton-vpn-api-core`](https://github.com/ProtonVPN/python-proton-vpn-api-core) —
+have nested submodules (`scripts/devtools`, `ci-libraries-rust`) that point at
+Proton's private GitLab and aren't published on GitHub. They're not needed to
+build — pass `--init` only, never `--recursive`.
 
-`uv sync` builds `proton-vpn-local-agent` from the
-[`local-agent-rs`](https://github.com/ProtonVPN/local-agent-rs) Rust source
-checked in at [`vendor/local-agent-rs/`](vendor/local-agent-rs/) (git submodule).
+`uv sync` builds `proton-vpn-local-agent` from the Rust source at
+[`vendor/local-agent-rs/`](vendor/local-agent-rs/), and installs
+`proton-vpn-api-core` from the Python source at
+[`vendor/python-proton-vpn-api-core/`](vendor/python-proton-vpn-api-core/).
 That requires:
 
 - `cargo` (install via [rustup](https://rustup.rs))

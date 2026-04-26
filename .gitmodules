@@ -1,3 +1,6 @@
 [submodule "vendor/local-agent-rs"]
 	path = vendor/local-agent-rs
 	url = https://github.com/ProtonVPN/local-agent-rs
+[submodule "vendor/python-proton-vpn-api-core"]
+	path = vendor/python-proton-vpn-api-core
+	url = https://github.com/ProtonVPN/python-proton-vpn-api-core

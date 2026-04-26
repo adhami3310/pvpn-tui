@@ -39,6 +39,13 @@ jobs:
         with:
           python-version: 3.14
 
+      - name: Install pycairo / pygobject build deps
+        # proton-vpn-api-core's setup.py declares pygobject + pycairo
+        # for its NetworkManager backends. We don't use those backends,
+        # but pip still resolves the deps. Both ship sdist-only on PyPI,
+        # so they need cairo / gobject-introspection headers to build.
+        run: sudo apt-get update && sudo apt-get install -y libcairo2-dev libgirepository-2.0-dev
+
       - name: Sync dependencies
         run: uv sync
 

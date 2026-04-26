@@ -1,0 +1,35 @@
+# Maturin wrapper that lets uv build `proton-vpn-local-agent` directly
+# from the local-agent-rs git submodule. The upstream Cargo crate at
+# vendor/local-agent-rs/python-proton-vpn-local-agent/ has no
+# pyproject.toml of its own (Proton ships its wheels via distro
+# packaging scripts, not maturin), so we provide one here and point
+# `manifest-path` at the upstream Cargo.toml.
+#
+# When uv resolves the dep, it invokes maturin via PEP 517, which runs
+# `cargo build --release` against that manifest and packages the
+# resulting `libpython_proton_vpn_local_agent.so` as
+# `proton/vpn/local_agent.abi3.so` inside a wheel.
+#
+# Requires `cargo` on PATH (install via https://rustup.rs).
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "proton-vpn-local-agent"
+version = "1.6.1"
+description = "Proton VPN local agent (Rust extension via maturin)."
+readme = "README.md"
+requires-python = ">=3.8"
+
+[tool.maturin]
+manifest-path = "../local-agent-rs/python-proton-vpn-local-agent/Cargo.toml"
+# `python-source` + the proton/vpn namespace skeleton (empty dirs with
+# .gitkeep) make maturin emit `proton/vpn/local_agent.abi3.so` inside
+# the wheel — i.e. importable as `proton.vpn.local_agent`. proton/ and
+# proton/vpn/ deliberately have no __init__.py so they remain namespace
+# packages and don't shadow other proton-* installs.
+python-source = "python"
+module-name = "proton.vpn.local_agent"
+features = ["pyo3/extension-module"]
+strip = true
